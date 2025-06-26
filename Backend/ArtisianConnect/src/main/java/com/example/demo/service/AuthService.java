@@ -7,12 +7,15 @@ import com.example.demo.model.role;
 import com.example.demo.model.userModel;
 import com.example.demo.Repo.roleRepo;
 import com.example.demo.Repo.userRepo;
+import com.example.demo.config.JwtUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -25,6 +28,8 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -55,6 +60,19 @@ public class AuthService {
             return new AuthResponse("Invalid credentials.");
         }
 
-        return new AuthResponse("Login successful.");
+        Set<String> roles = user.getRoles().stream()
+                .map(role::getName)
+                .collect(Collectors.toSet());
+
+        String token = jwtUtil.generateToken(user.getEmail(), roles);
+
+
+        return new AuthResponse(
+            "Login successful.",
+            token,
+            user.getFullName(),
+            user.getEmail(),
+            roles
+        );
     }
 }
